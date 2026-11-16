@@ -2,6 +2,8 @@ import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
 
 export async function createSession(req, res) {
+  let step = "validating request";
+
   try {
     const { problem, difficulty } = req.body;
     const userId = req.user._id;
@@ -11,13 +13,22 @@ export async function createSession(req, res) {
       return res.status(400).json({ message: "Problem and difficulty are required" });
     }
 
+    step = "syncing Stream user";
+    await chatClient.upsertUser({
+      id: clerkId,
+      name: req.user.name,
+      image: req.user.profileImage,
+    });
+
     // generate a unique call id for stream video
     const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
     // create session in db
+    step = "creating database session";
     const session = await Session.create({ problem, difficulty, host: userId, callId });
 
     // create stream video call
+    step = "creating video call";
     await streamClient.video.call("default", callId).getOrCreate({
       data: {
         created_by_id: clerkId,
@@ -26,6 +37,7 @@ export async function createSession(req, res) {
     });
 
     // chat messaging
+    step = "creating chat channel";
     const channel = chatClient.channel("messaging", callId, {
       name: `${problem} Session`,
       created_by_id: clerkId,
@@ -36,7 +48,11 @@ export async function createSession(req, res) {
 
     res.status(201).json({ session });
   } catch (error) {
-    console.log("Error in createSession controller:", error.message);
+    console.error(`Error in createSession controller while ${step}:`, {
+      message: error.message,
+      code: error.code,
+      apiError: error.apiError ?? error.response?.data,
+    });
     res.status(500).json({ message: "Internal Server Error" });
   }
 }

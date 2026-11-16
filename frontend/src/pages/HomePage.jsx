@@ -7,7 +7,7 @@ import {
   VideoIcon,
   ZapIcon,
 } from "lucide-react";
-import { SignInButton } from "@clerk/clerk-react";
+import { SignInButton } from "@clerk/react";
 
 function HomePage() {
   return (
@@ -98,28 +98,6 @@ function HomePage() {
                 <VideoIcon className="size-5" />
                 Watch Demo
               </button>
-            </div>
-
-            {/* STATS */}
-            <div className="stats stats-vertical lg:stats-horizontal bg-base-100 shadow-lg">
-              <div className="stat">
-                <div className="stat-value bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-                  10K+
-                </div>
-                <div className="stat-title">Active Users</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-                  50K+
-                </div>
-                <div className="stat-title">Sessions</div>
-              </div>
-              <div className="stat">
-                <div className="stat-value bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
-                  99.9%
-                </div>
-                <div className="stat-title">Uptime</div>
-              </div>
             </div>
           </div>
 

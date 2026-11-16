@@ -4,10 +4,10 @@ import { formatDistanceToNow } from "date-fns";
 
 function RecentSessions({ sessions, isLoading }) {
   return (
-    <div className="card bg-base-100 border-2 border-accent/20 hover:border-accent/30 mt-8">
+    <div className="card bg-base-100 border-2 border-orange-500/20 hover:border-orange-500/30 mt-8">
       <div className="card-body">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-br from-accent to-secondary rounded-xl">
+          <div className="p-2 bg-gradient-to-br from-red-600 to-orange-500 rounded-xl">
             <Clock className="w-5 h-5 text-white" />
           </div>
           <h2 className="text-2xl font-black">Your Past Sessions</h2>
@@ -16,7 +16,7 @@ function RecentSessions({ sessions, isLoading }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading ? (
             <div className="col-span-full flex items-center justify-center py-20">
-              <Loader className="w-10 h-10 animate-spin text-primary" />
+              <Loader className="w-10 h-10 animate-spin text-orange-500" />
             </div>
           ) : sessions.length > 0 ? (
             sessions.map((session) => (
@@ -25,7 +25,7 @@ function RecentSessions({ sessions, isLoading }) {
                 className={`card relative ${
                   session.status === "active"
                     ? "bg-success/10 border-success/30 hover:border-success/60"
-                    : "bg-base-200 border-base-300 hover:border-primary/30"
+                    : "bg-base-200 border-base-300 hover:border-orange-500/30"
                 }`}
               >
                 {session.status === "active" && (
@@ -43,7 +43,7 @@ function RecentSessions({ sessions, isLoading }) {
                       className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                         session.status === "active"
                           ? "bg-gradient-to-br from-success to-success/70"
-                          : "bg-gradient-to-br from-primary to-secondary"
+                          : "bg-gradient-to-br from-red-600 to-orange-500"
                       }`}
                     >
                       <Code2 className="w-6 h-6 text-white" />
@@ -87,8 +87,8 @@ function RecentSessions({ sessions, isLoading }) {
             ))
           ) : (
             <div className="col-span-full text-center py-16">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-3xl flex items-center justify-center">
-                <Trophy className="w-10 h-10 text-accent/50" />
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-red-600/20 to-orange-500/20 rounded-3xl flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-orange-500/50" />
               </div>
               <p className="text-lg font-semibold opacity-70 mb-1">No sessions yet</p>
               <p className="text-sm opacity-50">Start your coding journey today!</p>

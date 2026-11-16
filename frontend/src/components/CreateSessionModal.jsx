@@ -16,7 +16,9 @@ function CreateSessionModal({
   return (
     <div className="modal modal-open">
       <div className="modal-box max-w-2xl">
-        <h3 className="font-bold text-2xl mb-6">Create New Session</h3>
+        <h3 className="font-bold text-2xl mb-6 bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
+          Create New Session
+        </h3>
 
         <div className="space-y-8">
           {/* PROBLEM SELECTION */}
@@ -27,7 +29,7 @@ function CreateSessionModal({
             </label>
 
             <select
-              className="select w-full"
+              className="select w-full focus:border-orange-500 focus:outline-orange-500"
               value={roomConfig.problem}
               onChange={(e) => {
                 const selectedProblem = problems.find((p) => p.title === e.target.value);
@@ -72,7 +74,7 @@ function CreateSessionModal({
           </button>
 
           <button
-            className="btn btn-primary gap-2"
+            className="btn gap-2 border-0 text-white bg-gradient-to-r from-red-600 to-orange-500 hover:opacity-90 disabled:opacity-50 disabled:text-white"
             onClick={onCreateRoom}
             disabled={isCreating || !roomConfig.problem}
           >

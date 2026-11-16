@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon } from "lucide-react";
+import { BookOpenIcon, LayoutDashboardIcon } from "lucide-react";
 import { UserButton } from "@clerk/react";
 
 function Navbar() {
@@ -15,9 +15,7 @@ function Navbar() {
           to="/"
           className="group flex items-center gap-3 hover:scale-105 transition-transform duration-200"
         >
-          <div className="size-14 rounded-2xl bg-gradient-to-br from-red-600 to-orange-500 text-white shadow-lg flex items-center justify-center">
-            <SparklesIcon className="size-7" />
-          </div>
+          <img src="/logo.png" alt="Logo" className="size-14 object-contain" />
 
           <div className="flex flex-col">
             <span className="font-black text-xl bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent font-mono tracking-wider">
@@ -33,14 +31,11 @@ function Navbar() {
           {/* PROBLEMS PAGE LINK */}
           <Link
             to={"/problems"}
-            className={`px-4 py-2.5 rounded-lg transition-all duration-200 
-              ${
-                isActive("/problems")
-                  ? "bg-gradient-to-r from-red-600 to-orange-500 text-white"
-                  : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
-              }
-              
-              `}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${
+              isActive("/problems")
+                ? "bg-gradient-to-r from-red-600 to-orange-500 text-white"
+                : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+            }`}
           >
             <div className="flex items-center gap-x-2.5">
               <BookOpenIcon className="size-4" />
@@ -51,14 +46,11 @@ function Navbar() {
           {/* DASHBOARD PAGE LINK */}
           <Link
             to={"/dashboard"}
-            className={`px-4 py-2.5 rounded-lg transition-all duration-200 
-              ${
-                isActive("/dashboard")
-                  ? "bg-gradient-to-r from-red-600 to-orange-500 text-white"
-                  : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
-              }
-              
-              `}
+            className={`px-4 py-2.5 rounded-lg transition-all duration-200 ${
+              isActive("/dashboard")
+                ? "bg-gradient-to-r from-red-600 to-orange-500 text-white"
+                : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+            }`}
           >
             <div className="flex items-center gap-x-2.5">
               <LayoutDashboardIcon className="size-4" />

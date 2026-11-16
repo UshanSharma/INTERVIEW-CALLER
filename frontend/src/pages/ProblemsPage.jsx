@@ -38,8 +38,8 @@ function ProblemsPage() {
                   {/* LEFT SIDE */}
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Code2Icon className="size-6 text-primary" />
+                      <div className="size-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                        <Code2Icon className="size-6 text-orange-500" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -55,7 +55,7 @@ function ProblemsPage() {
                   </div>
                   {/* RIGHT SIDE */}
 
-                  <div className="flex items-center gap-2 text-primary">
+                  <div className="flex items-center gap-2 text-red-600">
                     <span className="font-medium">Solve</span>
                     <ChevronRightIcon className="size-5" />
                   </div>
@@ -71,7 +71,7 @@ function ProblemsPage() {
             <div className="stats stats-vertical lg:stats-horizontal">
               <div className="stat">
                 <div className="stat-title">Total Problems</div>
-                <div className="stat-value text-primary">{problems.length}</div>
+                <div className="stat-value text-red-600">{problems.length}</div>
               </div>
 
               <div className="stat">

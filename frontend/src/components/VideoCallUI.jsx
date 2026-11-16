@@ -63,7 +63,6 @@ function VideoCallUI({ chatClient, channel }) {
       </div>
 
       {/* CHAT SECTION */}
-
       {chatClient && channel && (
         <div
           className={`flex flex-col rounded-lg shadow overflow-hidden bg-[#272a30] transition-all duration-300 ease-in-out ${
@@ -98,4 +97,5 @@ function VideoCallUI({ chatClient, channel }) {
     </div>
   );
 }
+
 export default VideoCallUI;

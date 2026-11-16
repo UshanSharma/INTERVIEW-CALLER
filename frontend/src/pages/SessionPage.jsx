@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useEndSession, useJoinSession, useSessionById } from "../hooks/useSessions";
@@ -183,7 +183,7 @@ function SessionPage() {
                               </div>
                               <div className="bg-base-200 rounded-lg p-4 font-mono text-sm space-y-1.5">
                                 <div className="flex gap-2">
-                                  <span className="text-primary font-bold min-w-[70px]">
+                                  <span className="text-red-600 font-bold min-w-[70px]">
                                     Input:
                                   </span>
                                   <span>{example.input}</span>
@@ -216,7 +216,7 @@ function SessionPage() {
                         <ul className="space-y-2 text-base-content/90">
                           {problemData.constraints.map((constraint, idx) => (
                             <li key={idx} className="flex gap-2">
-                              <span className="text-primary">•</span>
+                              <span className="text-red-600">•</span>
                               <code className="text-sm">{constraint}</code>
                             </li>
                           ))}
@@ -227,7 +227,7 @@ function SessionPage() {
                 </div>
               </Panel>
 
-              <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
               <Panel defaultSize={50} minSize={20}>
                 <Group direction="vertical">
@@ -242,7 +242,7 @@ function SessionPage() {
                     />
                   </Panel>
 
-                  <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+                  <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
                   <Panel defaultSize={30} minSize={15}>
                     <OutputPanel output={output} />
@@ -252,7 +252,7 @@ function SessionPage() {
             </Group>
           </Panel>
 
-          <Separator className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <Separator className="w-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-col-resize" />
 
           {/* RIGHT PANEL - VIDEO CALLS & CHAT */}
           <Panel defaultSize={50} minSize={30}>

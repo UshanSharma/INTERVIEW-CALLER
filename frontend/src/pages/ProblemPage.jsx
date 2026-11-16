@@ -122,7 +122,7 @@ function ProblemPage() {
             />
           </Panel>
 
-          <Separator className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <Separator className="w-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-col-resize" />
 
           {/* right panel- code editor & output */}
           <Panel defaultSize={60} minSize={30}>
@@ -139,7 +139,7 @@ function ProblemPage() {
                 />
               </Panel>
 
-              <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
               {/* Bottom panel - Output Panel*/}
 
