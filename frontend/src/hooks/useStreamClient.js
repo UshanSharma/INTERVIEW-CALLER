@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { StreamChat } from "stream-chat";
+import { CallingState } from "@stream-io/video-react-sdk";
 import toast from "react-hot-toast";
 import { initializeStreamClient, disconnectStreamClient } from "../lib/stream";
 import { sessionApi } from "../api/sessions";
@@ -83,7 +84,9 @@ function useStreamClient(session, loadingSession, isHost, isParticipant) {
       isCancelled = true;
       (async () => {
         try {
-          if (videoCall) await videoCall.leave();
+          if (videoCall && videoCall.state.callingState !== CallingState.LEFT) {
+            await videoCall.leave();
+          }
           if (chatClientInstance) await chatClientInstance.disconnectUser();
           if (videoClient) await disconnectStreamClient(videoClient);
         } catch (error) {

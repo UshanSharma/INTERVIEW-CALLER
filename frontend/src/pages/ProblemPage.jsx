@@ -25,6 +25,7 @@ function ProblemPage() {
   const currentProblem = PROBLEMS[currentProblemId];
 
   // update problem when URL param changes
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (id && PROBLEMS[id]) {
       setCurrentProblemId(id);
@@ -32,6 +33,7 @@ function ProblemPage() {
       setOutput(null);
     }
   }, [id, selectedLanguage]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;

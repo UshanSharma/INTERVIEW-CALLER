@@ -1,28 +1,12 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import App from "./App.jsx";
-import { ClerkProvider } from "@clerk/react";
-import { BrowserRouter } from "react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AppRoot from "./AppRoot.jsx";
 
-// Import your Publishable Key
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Missing root element");
 
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Clerk Publishable Key");
-}
+const hot = import.meta.hot;
+const root = hot?.data.root ?? createRoot(rootElement);
+if (hot) hot.data.root = root;
 
-const queryClient = new QueryClient();
-
-createRoot(document.getElementById("root")).render(
-  <StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-          <App />
-        </ClerkProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </StrictMode>
-);
+root.render(<AppRoot />);

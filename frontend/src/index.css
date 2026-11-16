@@ -10,3 +10,28 @@
     cursor: pointer;
   }
 }
+
+.str-video .str-video__participant-details,
+.str-video .str-video__participant-details * {
+  color: #fff !important;
+}
+
+.str-video .str-video__participant-details {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.str-video .str-video__participant-details,
+.str-video .str-video__participant-details * {
+  color: #1f2937;
+}
+
+:root {
+  --str-video__text-color1: #fff;
+}
+
+.str-video__generic-menu,
+.str-video__generic-menu *,
+.str-video__menu-container,
+.str-video__menu-container * {
+  color: #fff !important;
+}
