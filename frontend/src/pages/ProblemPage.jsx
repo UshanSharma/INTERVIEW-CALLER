@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useAuth } from "@clerk/react";
 import { PROBLEMS } from "../data/problems";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/navbar";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
 import ProblemDescription from "../components/ProblemDescription";
