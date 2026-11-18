@@ -1,5 +1,5 @@
 import { useUser } from "@clerk/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useEndSession, useJoinSession, useSessionById } from "../hooks/useSessions";
 import { PROBLEMS } from "../data/problems";
@@ -46,14 +46,18 @@ function SessionPage() {
   const [selectedLanguage, setSelectedLanguage] = useState("javascript");
   const [code, setCode] = useState(problemData?.starterCode?.[selectedLanguage] || "");
 
+  // makes sure the join request is only sent once (StrictMode and mutation state changes
+  // would otherwise re-run the effect and cause a "session is full" error)
+  const hasTriedJoin = useRef(false);
+
   // auto-join session if user is not already a participant and not the host
   useEffect(() => {
     if (!session || !user || loadingSession) return;
     if (isHost || isParticipant) return;
+    if (hasTriedJoin.current) return;
 
+    hasTriedJoin.current = true;
     joinSessionMutation.mutate(id, { onSuccess: refetch });
-
-    // remove the joinSessionMutation, refetch from dependencies to avoid infinite loop
   }, [session, user, loadingSession, isHost, isParticipant, id, joinSessionMutation, refetch]);
 
   // redirect the "participant" when session ends
@@ -101,13 +105,13 @@ function SessionPage() {
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
 
-      <div className="flex-1">
-        <Group direction="horizontal">
+      <div className="flex-1 min-h-0">
+        <Group orientation="horizontal" className="h-full">
           {/* LEFT PANEL - CODE EDITOR & PROBLEM DETAILS */}
-          <Panel defaultSize={50} minSize={30}>
-            <Group direction="vertical">
+          <Panel defaultSize="50%" minSize="30%">
+            <Group orientation="vertical">
               {/* PROBLEM DSC PANEL */}
-              <Panel defaultSize={50} minSize={20}>
+              <Panel defaultSize="50%" minSize="20%">
                 <div className="h-full overflow-y-auto bg-base-200">
                   {/* HEADER SECTION */}
                   <div className="p-6 bg-base-100 border-b border-base-300">
@@ -229,11 +233,11 @@ function SessionPage() {
                 </div>
               </Panel>
 
-              <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
+              <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
 
-              <Panel defaultSize={50} minSize={20}>
-                <Group direction="vertical">
-                  <Panel defaultSize={70} minSize={30}>
+              <Panel defaultSize="50%" minSize="20%">
+                <Group orientation="vertical">
+                  <Panel defaultSize="70%" minSize="30%">
                     <CodeEditorPanel
                       selectedLanguage={selectedLanguage}
                       code={code}
@@ -244,9 +248,9 @@ function SessionPage() {
                     />
                   </Panel>
 
-                  <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
+                  <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
 
-                  <Panel defaultSize={30} minSize={15}>
+                  <Panel defaultSize="30%" minSize="15%">
                     <OutputPanel output={output} />
                   </Panel>
                 </Group>
@@ -254,10 +258,10 @@ function SessionPage() {
             </Group>
           </Panel>
 
-          <Separator className="w-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-col-resize" />
+          <Separator className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
 
           {/* RIGHT PANEL - VIDEO CALLS & CHAT */}
-          <Panel defaultSize={50} minSize={30}>
+          <Panel defaultSize="50%" minSize="30%">
             <div className="h-full bg-base-200 p-4 overflow-auto">
               {isInitializingCall ? (
                 <div className="h-full flex items-center justify-center">
