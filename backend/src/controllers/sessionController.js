@@ -1,8 +1,12 @@
+import mongoose from "mongoose";
 import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
 
+const invalidId = (res) => res.status(400).json({ message: "Invalid session id" });
+
 export async function createSession(req, res) {
   let step = "validating request";
+  let session = null;
 
   try {
     const { problem, difficulty } = req.body;
@@ -25,7 +29,7 @@ export async function createSession(req, res) {
 
     // create session in db
     step = "creating database session";
-    const session = await Session.create({ problem, difficulty, host: userId, callId });
+    session = await Session.create({ problem, difficulty, host: userId, callId });
 
     // create stream video call
     step = "creating video call";
@@ -53,6 +57,14 @@ export async function createSession(req, res) {
       code: error.code,
       apiError: error.apiError ?? error.response?.data,
     });
+
+    // don't leave a half-created session behind
+    if (session) {
+      await Session.findByIdAndDelete(session._id).catch((e) =>
+        console.error("Failed to clean up session:", e.message)
+      );
+    }
+
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
@@ -60,8 +72,8 @@ export async function createSession(req, res) {
 export async function getActiveSessions(_, res) {
   try {
     const sessions = await Session.find({ status: "active" })
-      .populate("host", "name profileImage email clerkId")
-      .populate("participant", "name profileImage email clerkId")
+      .populate("host", "name profileImage clerkId")
+      .populate("participant", "name profileImage clerkId")
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -94,10 +106,11 @@ export async function getMyRecentSessions(req, res) {
 export async function getSessionById(req, res) {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return invalidId(res);
 
     const session = await Session.findById(id)
-      .populate("host", "name email profileImage clerkId")
-      .populate("participant", "name email profileImage clerkId");
+      .populate("host", "name profileImage clerkId")
+      .populate("participant", "name profileImage clerkId");
 
     if (!session) return res.status(404).json({ message: "Session not found" });
 
@@ -111,29 +124,52 @@ export async function getSessionById(req, res) {
 export async function joinSession(req, res) {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return invalidId(res);
+
     const userId = req.user._id;
     const clerkId = req.user.clerkId;
 
-    const session = await Session.findById(id);
+    const existing = await Session.findById(id);
 
-    if (!session) return res.status(404).json({ message: "Session not found" });
+    if (!existing) return res.status(404).json({ message: "Session not found" });
 
-    if (session.status !== "active") {
+    if (existing.status !== "active") {
       return res.status(400).json({ message: "Cannot join a completed session" });
     }
 
-    if (session.host.toString() === userId.toString()) {
+    if (existing.host.toString() === userId.toString()) {
       return res.status(400).json({ message: "Host cannot join their own session as participant" });
     }
 
-    // check if session is already full - has a participant
-    if (session.participant) return res.status(409).json({ message: "Session is full" });
+    // already the participant -> succeed (makes retries / double requests harmless)
+    if (existing.participant?.toString() === userId.toString()) {
+      return res.status(200).json({ session: existing });
+    }
 
-    session.participant = userId;
-    await session.save();
+    // atomic claim of the participant slot: only one request can win
+    const session = await Session.findOneAndUpdate(
+      { _id: id, status: "active", participant: null },
+      { participant: userId },
+      { new: true }
+    );
 
-    const channel = chatClient.channel("messaging", session.callId);
-    await channel.addMembers([clerkId]);
+    if (!session) return res.status(409).json({ message: "Session is full" });
+
+    try {
+      // make sure the user exists in Stream before adding them to the channel
+      await chatClient.upsertUser({
+        id: clerkId,
+        name: req.user.name,
+        image: req.user.profileImage,
+      });
+
+      const channel = chatClient.channel("messaging", session.callId);
+      await channel.addMembers([clerkId]);
+    } catch (chatError) {
+      // roll back so the user isn't a participant without chat access
+      await Session.updateOne({ _id: id, participant: userId }, { participant: null });
+      throw chatError;
+    }
 
     res.status(200).json({ session });
   } catch (error) {
@@ -145,6 +181,8 @@ export async function joinSession(req, res) {
 export async function endSession(req, res) {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return invalidId(res);
+
     const userId = req.user._id;
 
     const session = await Session.findById(id);
@@ -161,16 +199,22 @@ export async function endSession(req, res) {
       return res.status(400).json({ message: "Session is already completed" });
     }
 
-    // delete stream video call
-    const call = streamClient.video.call("default", session.callId);
-    await call.delete({ hard: true });
-
-    // delete stream chat channel
-    const channel = chatClient.channel("messaging", session.callId);
-    await channel.delete();
-
+    // mark completed FIRST so a Stream failure can't leave the session stuck as active
     session.status = "completed";
     await session.save();
+
+    // best-effort Stream cleanup (don't fail the request if these throw)
+    try {
+      await streamClient.video.call("default", session.callId).delete({ hard: true });
+    } catch (e) {
+      console.log("Failed to delete Stream call:", e.message);
+    }
+
+    try {
+      await chatClient.channel("messaging", session.callId).delete();
+    } catch (e) {
+      console.log("Failed to delete Stream channel:", e.message);
+    }
 
     res.status(200).json({ session, message: "Session ended successfully" });
   } catch (error) {

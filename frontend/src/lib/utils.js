@@ -1,3 +1,5 @@
+import confetti from "canvas-confetti";
+
 export const getDifficultyBadgeClass = (difficulty) => {
   switch (difficulty?.toLowerCase()) {
     case "easy":
@@ -9,4 +11,37 @@ export const getDifficultyBadgeClass = (difficulty) => {
     default:
       return "badge-ghost";
   }
+};
+
+// makes actual/expected outputs comparable (spacing, quotes, array formatting)
+export const normalizeOutput = (output) => {
+  if (typeof output !== "string") return "";
+
+  return output
+    .trim()
+    .split("\n")
+    .map((line) =>
+      line
+        .trim()
+        .replace(/'/g, '"') // treat 'a' and "a" the same
+        .replace(/\[\s+/g, "[")
+        .replace(/\s+\]/g, "]")
+        .replace(/\s*,\s*/g, ",")
+    )
+    .filter((line) => line.length > 0)
+    .join("\n");
+};
+
+export const checkIfTestsPassed = (actualOutput, expectedOutput) =>
+  normalizeOutput(actualOutput) === normalizeOutput(expectedOutput);
+
+export const triggerConfetti = () => {
+  [0.2, 0.8].forEach((x) =>
+    confetti({
+      particleCount: 80,
+      spread: 250,
+      origin: { x, y: 0.6 },
+      zIndex: 2147483647,
+    })
+  );
 };
