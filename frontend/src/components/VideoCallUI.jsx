@@ -1,3 +1,4 @@
+
 import {
   CallingState,
   CancelCallButton,
@@ -11,6 +12,7 @@ import {
   useCall,
   useCallStateHooks,
 } from "@stream-io/video-react-sdk";
+
 import {
   CircleDotIcon,
   DownloadIcon,
@@ -19,35 +21,73 @@ import {
   UsersIcon,
   XIcon,
 } from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Channel, Chat, MessageComposer, MessageList, Thread, Window } from "stream-chat-react";
+
+import {
+  Channel,
+  Chat,
+  MessageComposer,
+  MessageList,
+  Thread,
+  Window,
+} from "stream-chat-react";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "stream-chat-react/dist/css/index.css";
 
-// same box shape as the End Session button (colors are set separately)
 const boxShape =
   "!h-9 !min-h-0 !rounded-[4px] !px-4 !gap-2 !text-sm !font-semibold !border-0 !shadow-[0_4px_8px_rgba(0,0,0,0.25)]";
 
-// downloads the finished recording to the user's computer
-async function downloadRecording(url, filename) {
+// Validate the Stream signed URL before opening the recording.
+function downloadRecording(url, filename) {
+  if (!url) {
+    console.error("Recording download failed: missing URL");
+    return false;
+  }
+
   try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
+    const parsedUrl = new URL(url);
+
+    const hasExpires = parsedUrl.searchParams.has("Expires");
+    const hasSignature = parsedUrl.searchParams.has("Signature");
+    const hasKeyPairId = parsedUrl.searchParams.has("Key-Pair-Id");
+
+    console.log("Stream recording URL validation:", {
+      validUrl: parsedUrl.protocol === "https:",
+      hasExpires,
+      hasSignature,
+      hasKeyPairId,
+      htmlEscapedParameters: url.includes("&amp;"),
+    });
+
+    if (parsedUrl.protocol !== "https:") {
+      console.error("Recording URL must use HTTPS.");
+      return false;
+    }
+
+    if (!hasExpires || !hasSignature || !hasKeyPairId) {
+      console.error(
+        "Recording URL is missing required signing parameters."
+      );
+      return false;
+    }
+
+    // Open the original signed URL without modifying it.
     const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.download = filename || "interview-recording.mp4";
+
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(blobUrl);
+
     return true;
   } catch (error) {
-    console.error("Auto download failed:", error);
-    // fall back to opening the file in a new tab so it can be saved manually
-    window.open(url, "_blank");
+    console.error("Recording download failed:", error);
     return false;
   }
 }
@@ -55,51 +95,130 @@ async function downloadRecording(url, filename) {
 function VideoCallUI({ chatClient, channel }) {
   const navigate = useNavigate();
   const call = useCall();
-  const { useCallCallingState, useParticipantCount, useIsCallRecordingInProgress } =
-    useCallStateHooks();
+
+  const {
+    useCallCallingState,
+    useParticipantCount,
+    useIsCallRecordingInProgress,
+  } = useCallStateHooks();
+
   const callingState = useCallCallingState();
   const participantCount = useParticipantCount();
   const isRecordingFromSdk = useIsCallRecordingInProgress();
+
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isTogglingRecording, setIsTogglingRecording] = useState(false);
   const [recordingError, setRecordingError] = useState(null);
 
-  // the SDK's recording state can lag behind Stream's servers, so we also track it locally
   const [localRecording, setLocalRecording] = useState(false);
   const isRecording = isRecordingFromSdk || localRecording;
 
-  // download-related state
-  const [isProcessing, setIsProcessing] = useState(false); // stopped, waiting for Stream to finish the file
-  const [recordingFile, setRecordingFile] = useState(null); // { url, filename } once ready
-  const iStoppedRecording = useRef(false); // so only the person who stopped it gets the download
+  // Recording download state.
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingFile, setRecordingFile] = useState(null);
 
-  // when Stream finishes processing, download the file automatically
+  const iStoppedRecording = useRef(false);
+  const knownRecordingUrls = useRef(new Set());
+  const checkingRecordings = useRef(false);
+
+  // Listen for Stream's recording_ready event.
   useEffect(() => {
     if (!call) return;
 
-    const unsubscribe = call.on("call.recording_ready", async (event) => {
-      if (!iStoppedRecording.current) return;
+    const unsubscribe = call.on(
+      "call.recording_ready",
+      async (event) => {
+        if (!iStoppedRecording.current) return;
 
-      const url = event.call_recording?.url;
-      if (!url) return;
-      const filename = event.call_recording?.filename || `interview-${Date.now()}.mp4`;
+        const url = event.call_recording?.url;
 
-      iStoppedRecording.current = false;
-      setIsProcessing(false);
-      setRecordingFile({ url, filename });
-      await downloadRecording(url, filename);
-    });
+        if (!url) {
+          console.error("Recording ready event did not contain a URL.");
+          return;
+        }
+
+        const filename =
+          event.call_recording?.filename ||
+          `interview-${Date.now()}.mp4`;
+
+        iStoppedRecording.current = false;
+        setIsProcessing(false);
+        setRecordingFile({ url, filename });
+
+        downloadRecording(url, filename);
+      }
+    );
 
     return () => unsubscribe();
   }, [call]);
 
-  // start/stop the recording and show Stream's real error message if it fails
+  // Backup polling in case the recording_ready event is missed.
+  useEffect(() => {
+    if (!call || !isProcessing) return;
+
+    const interval = setInterval(async () => {
+      if (
+        !iStoppedRecording.current ||
+        checkingRecordings.current
+      ) {
+        return;
+      }
+
+      checkingRecordings.current = true;
+
+      try {
+        const { recordings } = await call.listRecordings();
+
+        const fresh = (recordings || []).find(
+          (recording) =>
+            recording.url &&
+            !knownRecordingUrls.current.has(recording.url)
+        );
+
+        if (!fresh || !iStoppedRecording.current) return;
+
+        iStoppedRecording.current = false;
+        setIsProcessing(false);
+
+        const filename =
+          fresh.filename || `interview-${Date.now()}.mp4`;
+
+        setRecordingFile({
+          url: fresh.url,
+          filename,
+        });
+
+        downloadRecording(fresh.url, filename);
+      } catch (error) {
+        console.error("Checking recordings failed:", error);
+      } finally {
+        checkingRecordings.current = false;
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [call, isProcessing]);
+
+  // Start or stop recording.
   const handleToggleRecording = async () => {
     setRecordingError(null);
     setIsTogglingRecording(true);
+
     try {
       if (isRecording) {
+        // Remember existing recordings.
+        const before = await call
+          .listRecordings()
+          .catch(() => ({ recordings: [] }));
+
+        knownRecordingUrls.current = new Set(
+          (before.recordings || [])
+            .map((recording) => recording.url)
+            .filter(Boolean)
+        );
+
         await call.stopRecording();
+
         setLocalRecording(false);
         iStoppedRecording.current = true;
         setRecordingFile(null);
@@ -110,8 +229,8 @@ function VideoCallUI({ chatClient, channel }) {
       }
     } catch (error) {
       const message = error?.message || "";
+
       if (message.includes("already being recorded")) {
-        // it's already recording on Stream's side, so just switch the button to "Stop recording"
         setLocalRecording(true);
       } else if (message.includes("not being recorded")) {
         setLocalRecording(false);
@@ -138,7 +257,8 @@ function VideoCallUI({ chatClient, channel }) {
   return (
     <div className="h-full flex gap-3 relative str-video">
       <div className="flex-1 flex flex-col gap-3 min-w-0">
-        {/* Participants count badge, recording indicator, Record and Chat buttons */}
+
+        {/* Header */}
         <div className="flex items-center justify-between gap-2 bg-base-100 p-3 rounded-lg shadow">
           <div className="flex items-center gap-3">
             <div
@@ -146,9 +266,13 @@ function VideoCallUI({ chatClient, channel }) {
             >
               <UsersIcon className="size-4" />
               <span>
-                {participantCount} {participantCount === 1 ? "participant" : "participants"}
+                {participantCount}{" "}
+                {participantCount === 1
+                  ? "participant"
+                  : "participants"}
               </span>
             </div>
+
             {isRecording && (
               <span className="badge badge-error gap-1.5">
                 <span className="size-2 rounded-full bg-white animate-pulse" />
@@ -162,13 +286,18 @@ function VideoCallUI({ chatClient, channel }) {
               onClick={handleToggleRecording}
               disabled={isTogglingRecording || !call}
               className={`btn btn-error ${boxShape}`}
-              title={isRecording ? "Stop recording" : "Start recording"}
+              title={
+                isRecording
+                  ? "Stop recording"
+                  : "Start recording"
+              }
             >
               {isTogglingRecording ? (
                 <Loader2Icon className="size-4 animate-spin" />
               ) : (
                 <CircleDotIcon className="size-4" />
               )}
+
               {isRecording ? "Stop recording" : "Record"}
             </button>
 
@@ -189,27 +318,39 @@ function VideoCallUI({ chatClient, channel }) {
           </div>
         </div>
 
+        {/* Recording error */}
         {recordingError && (
           <div role="alert" className="alert alert-error text-sm py-2">
             <span>Recording error: {recordingError}</span>
           </div>
         )}
 
+        {/* Processing message */}
         {isProcessing && (
           <div role="alert" className="alert alert-info text-sm py-2">
             <Loader2Icon className="size-4 animate-spin" />
             <span>
-              Processing your recording. It will download automatically when ready, so please stay
-              on this page.
+              Processing your recording. It will download automatically
+              when ready, so please stay on this page.
             </span>
           </div>
         )}
 
+        {/* Recording ready */}
         {recordingFile && (
-          <div role="alert" className="alert alert-success text-sm py-2 flex justify-between">
+          <div
+            role="alert"
+            className="alert alert-success text-sm py-2 flex justify-between"
+          >
             <span>Recording ready.</span>
+
             <button
-              onClick={() => downloadRecording(recordingFile.url, recordingFile.filename)}
+              onClick={() =>
+                downloadRecording(
+                  recordingFile.url,
+                  recordingFile.filename
+                )
+              }
               className="btn btn-sm gap-2"
             >
               <DownloadIcon className="size-4" />
@@ -218,41 +359,53 @@ function VideoCallUI({ chatClient, channel }) {
           </div>
         )}
 
+        {/* Video */}
         <div className="flex-1 bg-base-300 rounded-lg overflow-hidden relative">
           <SpeakerLayout />
         </div>
 
-        {/* Call controls without the built-in record button */}
+        {/* Call controls */}
         <div className="bg-base-100 p-3 rounded-lg shadow flex justify-center">
           <div className="str-video__call-controls">
             <Restricted requiredGrants={[OwnCapability.SEND_AUDIO]}>
               <ToggleAudioPublishingButton menuPlacement="top" />
             </Restricted>
+
             <Restricted requiredGrants={[OwnCapability.SEND_VIDEO]}>
               <ToggleVideoPublishingButton menuPlacement="top" />
             </Restricted>
+
             <Restricted requiredGrants={[OwnCapability.CREATE_REACTION]}>
               <ReactionsButton />
             </Restricted>
+
             <Restricted requiredGrants={[OwnCapability.SCREENSHARE]}>
               <ScreenShareButton />
             </Restricted>
-            <CancelCallButton onLeave={() => navigate("/dashboard")} />
+
+            <CancelCallButton
+              onLeave={() => navigate("/dashboard")}
+            />
           </div>
         </div>
       </div>
 
-      {/* CHAT SECTION */}
+      {/* Chat section */}
       {chatClient && channel && (
         <div
           className={`flex flex-col min-h-0 rounded-lg shadow overflow-hidden bg-[#272a30] transition-all duration-300 ease-in-out ${
-            isChatOpen ? "w-80 opacity-100" : "w-0 opacity-0"
+            isChatOpen
+              ? "w-80 opacity-100"
+              : "w-0 opacity-0"
           }`}
         >
           {isChatOpen && (
             <>
               <div className="bg-[#1c1e22] p-3 border-b border-[#3a3d44] flex items-center justify-between shrink-0">
-                <h3 className="font-semibold text-white">Session Chat</h3>
+                <h3 className="font-semibold text-white">
+                  Session Chat
+                </h3>
+
                 <button
                   onClick={() => setIsChatOpen(false)}
                   className="text-gray-400 hover:text-white transition-colors"
@@ -263,7 +416,10 @@ function VideoCallUI({ chatClient, channel }) {
               </div>
 
               <div className="flex-1 min-h-0 flex flex-col stream-chat-dark">
-                <Chat client={chatClient} theme="str-chat__theme-dark">
+                <Chat
+                  client={chatClient}
+                  theme="str-chat__theme-dark"
+                >
                   <Channel channel={channel}>
                     <Window>
                       <MessageList />
