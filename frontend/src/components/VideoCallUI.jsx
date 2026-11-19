@@ -1,4 +1,3 @@
-
 import {
   CallingState,
   CancelCallButton,
@@ -40,58 +39,6 @@ import "stream-chat-react/dist/css/index.css";
 const boxShape =
   "!h-9 !min-h-0 !rounded-[4px] !px-4 !gap-2 !text-sm !font-semibold !border-0 !shadow-[0_4px_8px_rgba(0,0,0,0.25)]";
 
-// Validate the Stream signed URL before opening the recording.
-function downloadRecording(url, filename) {
-  if (!url) {
-    console.error("Recording download failed: missing URL");
-    return false;
-  }
-
-  try {
-    const parsedUrl = new URL(url);
-
-    const hasExpires = parsedUrl.searchParams.has("Expires");
-    const hasSignature = parsedUrl.searchParams.has("Signature");
-    const hasKeyPairId = parsedUrl.searchParams.has("Key-Pair-Id");
-
-    console.log("Stream recording URL validation:", {
-      validUrl: parsedUrl.protocol === "https:",
-      hasExpires,
-      hasSignature,
-      hasKeyPairId,
-      htmlEscapedParameters: url.includes("&amp;"),
-    });
-
-    if (parsedUrl.protocol !== "https:") {
-      console.error("Recording URL must use HTTPS.");
-      return false;
-    }
-
-    if (!hasExpires || !hasSignature || !hasKeyPairId) {
-      console.error(
-        "Recording URL is missing required signing parameters."
-      );
-      return false;
-    }
-
-    // Open the original signed URL without modifying it.
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.download = filename || "interview-recording.mp4";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    return true;
-  } catch (error) {
-    console.error("Recording download failed:", error);
-    return false;
-  }
-}
-
 function VideoCallUI({ chatClient, channel }) {
   const navigate = useNavigate();
   const call = useCall();
@@ -113,7 +60,7 @@ function VideoCallUI({ chatClient, channel }) {
   const [localRecording, setLocalRecording] = useState(false);
   const isRecording = isRecordingFromSdk || localRecording;
 
-  // Recording download state.
+  // Recording state.
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingFile, setRecordingFile] = useState(null);
 
@@ -125,29 +72,23 @@ function VideoCallUI({ chatClient, channel }) {
   useEffect(() => {
     if (!call) return;
 
-    const unsubscribe = call.on(
-      "call.recording_ready",
-      async (event) => {
-        if (!iStoppedRecording.current) return;
+    const unsubscribe = call.on("call.recording_ready", (event) => {
+      if (!iStoppedRecording.current) return;
 
-        const url = event.call_recording?.url;
+      const url = event.call_recording?.url;
 
-        if (!url) {
-          console.error("Recording ready event did not contain a URL.");
-          return;
-        }
-
-        const filename =
-          event.call_recording?.filename ||
-          `interview-${Date.now()}.mp4`;
-
-        iStoppedRecording.current = false;
-        setIsProcessing(false);
-        setRecordingFile({ url, filename });
-
-        downloadRecording(url, filename);
+      if (!url) {
+        console.error("Recording ready event did not contain a URL.");
+        return;
       }
-    );
+
+      const filename =
+        event.call_recording?.filename || `interview-${Date.now()}.mp4`;
+
+      iStoppedRecording.current = false;
+      setIsProcessing(false);
+      setRecordingFile({ url, filename });
+    });
 
     return () => unsubscribe();
   }, [call]);
@@ -157,10 +98,7 @@ function VideoCallUI({ chatClient, channel }) {
     if (!call || !isProcessing) return;
 
     const interval = setInterval(async () => {
-      if (
-        !iStoppedRecording.current ||
-        checkingRecordings.current
-      ) {
+      if (!iStoppedRecording.current || checkingRecordings.current) {
         return;
       }
 
@@ -171,8 +109,7 @@ function VideoCallUI({ chatClient, channel }) {
 
         const fresh = (recordings || []).find(
           (recording) =>
-            recording.url &&
-            !knownRecordingUrls.current.has(recording.url)
+            recording.url && !knownRecordingUrls.current.has(recording.url)
         );
 
         if (!fresh || !iStoppedRecording.current) return;
@@ -180,15 +117,9 @@ function VideoCallUI({ chatClient, channel }) {
         iStoppedRecording.current = false;
         setIsProcessing(false);
 
-        const filename =
-          fresh.filename || `interview-${Date.now()}.mp4`;
+        const filename = fresh.filename || `interview-${Date.now()}.mp4`;
 
-        setRecordingFile({
-          url: fresh.url,
-          filename,
-        });
-
-        downloadRecording(fresh.url, filename);
+        setRecordingFile({ url: fresh.url, filename });
       } catch (error) {
         console.error("Checking recordings failed:", error);
       } finally {
@@ -243,6 +174,14 @@ function VideoCallUI({ chatClient, channel }) {
     }
   };
 
+  // Go to the styled recording page.
+  const handleOpenRecordingPage = () => {
+    if (!recordingFile) return;
+    navigate("/recording", {
+      state: { url: recordingFile.url, filename: recordingFile.filename },
+    });
+  };
+
   if (callingState === CallingState.JOINING) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -257,7 +196,6 @@ function VideoCallUI({ chatClient, channel }) {
   return (
     <div className="h-full flex gap-3 relative str-video">
       <div className="flex-1 flex flex-col gap-3 min-w-0">
-
         {/* Header */}
         <div className="flex items-center justify-between gap-2 bg-base-100 p-3 rounded-lg shadow">
           <div className="flex items-center gap-3">
@@ -267,9 +205,7 @@ function VideoCallUI({ chatClient, channel }) {
               <UsersIcon className="size-4" />
               <span>
                 {participantCount}{" "}
-                {participantCount === 1
-                  ? "participant"
-                  : "participants"}
+                {participantCount === 1 ? "participant" : "participants"}
               </span>
             </div>
 
@@ -286,11 +222,7 @@ function VideoCallUI({ chatClient, channel }) {
               onClick={handleToggleRecording}
               disabled={isTogglingRecording || !call}
               className={`btn btn-error ${boxShape}`}
-              title={
-                isRecording
-                  ? "Stop recording"
-                  : "Start recording"
-              }
+              title={isRecording ? "Stop recording" : "Start recording"}
             >
               {isTogglingRecording ? (
                 <Loader2Icon className="size-4 animate-spin" />
@@ -330,8 +262,8 @@ function VideoCallUI({ chatClient, channel }) {
           <div role="alert" className="alert alert-info text-sm py-2">
             <Loader2Icon className="size-4 animate-spin" />
             <span>
-              Processing your recording. It will download automatically
-              when ready, so please stay on this page.
+              Processing your recording. A button will appear here when
+              it's ready.
             </span>
           </div>
         )}
@@ -345,12 +277,7 @@ function VideoCallUI({ chatClient, channel }) {
             <span>Recording ready.</span>
 
             <button
-              onClick={() =>
-                downloadRecording(
-                  recordingFile.url,
-                  recordingFile.filename
-                )
-              }
+              onClick={handleOpenRecordingPage}
               className="btn btn-sm gap-2"
             >
               <DownloadIcon className="size-4" />
@@ -383,9 +310,7 @@ function VideoCallUI({ chatClient, channel }) {
               <ScreenShareButton />
             </Restricted>
 
-            <CancelCallButton
-              onLeave={() => navigate("/dashboard")}
-            />
+            <CancelCallButton onLeave={() => navigate("/dashboard")} />
           </div>
         </div>
       </div>
@@ -394,17 +319,13 @@ function VideoCallUI({ chatClient, channel }) {
       {chatClient && channel && (
         <div
           className={`flex flex-col min-h-0 rounded-lg shadow overflow-hidden bg-[#272a30] transition-all duration-300 ease-in-out ${
-            isChatOpen
-              ? "w-80 opacity-100"
-              : "w-0 opacity-0"
+            isChatOpen ? "w-80 opacity-100" : "w-0 opacity-0"
           }`}
         >
           {isChatOpen && (
             <>
               <div className="bg-[#1c1e22] p-3 border-b border-[#3a3d44] flex items-center justify-between shrink-0">
-                <h3 className="font-semibold text-white">
-                  Session Chat
-                </h3>
+                <h3 className="font-semibold text-white">Session Chat</h3>
 
                 <button
                   onClick={() => setIsChatOpen(false)}
@@ -416,10 +337,7 @@ function VideoCallUI({ chatClient, channel }) {
               </div>
 
               <div className="flex-1 min-h-0 flex flex-col stream-chat-dark">
-                <Chat
-                  client={chatClient}
-                  theme="str-chat__theme-dark"
-                >
+                <Chat client={chatClient} theme="str-chat__theme-dark">
                   <Channel channel={channel}>
                     <Window>
                       <MessageList />
