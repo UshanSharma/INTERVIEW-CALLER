@@ -21,6 +21,10 @@ import useStreamClient from "../hooks/useStreamClient";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
 import VideoCallUI from "../components/VideoCallUI";
 
+// same box shape as the End Session button (colors are set separately)
+const boxShape =
+  "!inline-flex !items-center !justify-center !h-8 !min-h-0 !rounded-[4px] !px-3 !gap-2 !text-sm !font-semibold !shadow-[0_4px_8px_rgba(0,0,0,0.25)]";
+
 function SessionPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -37,6 +41,9 @@ function SessionPage() {
   const session = sessionData?.session;
   const isHost = session?.host?.clerkId === user?.id;
   const isParticipant = session?.participant?.clerkId === user?.id;
+
+  // host = interviewer, participant = interviewee
+  const role = isHost ? "Interviewer" : isParticipant ? "Interviewee" : null;
 
   const { call, channel, chatClient, isInitializingCall, streamClient } = useStreamClient(
     session,
@@ -160,15 +167,32 @@ function SessionPage() {
                         {problemData?.category && (
                           <p className="text-base-content/60 mt-1">{problemData.category}</p>
                         )}
-                        <p className="text-base-content/60 mt-2">
-                          Host: {session?.host?.name || "Loading..."} •{" "}
-                          {session?.participant ? 2 : 1}/2 participants
-                        </p>
+                        <div className="text-base-content/60 mt-2 space-y-1">
+                          <p>
+                            <span className="font-semibold text-red-600">Interviewer:</span>{" "}
+                            {session?.host?.name || "Loading..."}
+                          </p>
+                          <p>
+                            <span className="font-semibold text-orange-500">Interviewee:</span>{" "}
+                            {session?.participant?.name || "Waiting for candidate..."}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3">
+                        {role && (
+                          <span
+                            className={`badge ${boxShape} ${
+                              isHost
+                                ? "!border-0 text-white bg-gradient-to-r from-red-600 to-orange-500"
+                                : "badge-outline border-orange-500 text-orange-500"
+                            }`}
+                          >
+                            You: {role}
+                          </span>
+                        )}
                         <span
-                          className={`badge badge-lg ${getDifficultyBadgeClass(
+                          className={`badge ${boxShape} ${getDifficultyBadgeClass(
                             session?.difficulty
                           )}`}
                         >
@@ -189,7 +213,9 @@ function SessionPage() {
                           </button>
                         )}
                         {session?.status === "completed" && (
-                          <span className="badge badge-ghost badge-lg">Completed</span>
+                          <span className="badge badge-ghost badge-lg text-sm font-semibold">
+                            Completed
+                          </span>
                         )}
                       </div>
                     </div>

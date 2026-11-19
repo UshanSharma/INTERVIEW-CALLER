@@ -93,6 +93,8 @@ export async function getMyRecentSessions(req, res) {
       status: "completed",
       $or: [{ host: userId }, { participant: userId }],
     })
+      .populate("host", "name profileImage clerkId")
+      .populate("participant", "name profileImage clerkId")
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -150,7 +152,7 @@ export async function joinSession(req, res) {
     const session = await Session.findOneAndUpdate(
       { _id: id, status: "active", participant: null },
       { participant: userId },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!session) return res.status(409).json({ message: "Session is full" });
@@ -189,7 +191,7 @@ export async function endSession(req, res) {
 
     if (!session) return res.status(404).json({ message: "Session not found" });
 
-    // check if user is the host
+    // check if user is the host (interviewer)
     if (session.host.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Only the host can end the session" });
     }

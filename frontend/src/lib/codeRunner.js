@@ -1,26 +1,11 @@
-// Runs code entirely in the user's browser: no server, no API key, no cost.
-//  - JavaScript: a throwaway Web Worker per run
-//  - Python: Pyodide (Python compiled to WebAssembly) in a long-lived Web Worker
-
 const JS_TIMEOUT_MS = 5000;
-const PY_TIMEOUT_MS = 20000; // generous: the very first run also downloads Pyodide
+const PY_TIMEOUT_MS = 20000; 
 const PYODIDE_VERSION = "0.26.4";
 
-// Java can't run in the browser, so it goes through our Express backend, which runs it
-// with the JDK installed on the server (see backend/src/routes/codeRoutes.js).
-// Use the same base URL your other API calls use, e.g. "http://localhost:3000/api".
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// true  = run Python with the Python installed on your server (exact version, stdin, libraries)
-// false = run Python in the browser with Pyodide (no server install, runs in a browser sandbox)
 const PYTHON_ON_SERVER = false;
 
-/* ----------------------------- JavaScript ----------------------------- */
-
-// Worker source kept as a plain string. console.log output is formatted like Node,
-// except strings inside arrays use double quotes (["a","b"]) because that is what the
-// expectedOutput values in data/problems.js use. Arrays print as [ 1, 2 ] and are
-// matched after normalizeOutput().
 const JS_WORKER_SOURCE = `
 function fmt(v, nested, seen) {
   if (typeof v === "string") return nested ? JSON.stringify(v) : v;

@@ -52,3 +52,8 @@
 .wrong-flash {
   animation: wrong-flash 0.7s ease-out forwards;
 }
+
+.str-video__notification,
+.str-video__notification * {
+  color: #fff !important;
+}
