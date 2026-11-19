@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useAuth } from "@clerk/react";
 import { PROBLEMS } from "../data/problems";
-import Navbar from "../components/navbar";
+import Navbar from "../components/Navbar";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
 import ProblemDescription from "../components/ProblemDescription";
@@ -11,7 +11,7 @@ import CodeEditorPanel from "../components/CodeEditorPanel";
 import { executeCode, warmUpPython } from "../lib/codeRunner";
 
 import toast from "react-hot-toast";
-import { checkIfTestsPassed, triggerConfetti } from "../lib/utils";
+import { checkIfTestsPassed, triggerConfetti, triggerWrongFlash } from "../lib/utils";
 
 function ProblemPage() {
   const { id } = useParams();
@@ -68,13 +68,16 @@ function ProblemPage() {
           triggerConfetti();
           toast.success("All tests passed! Great job!");
         } else {
+          triggerWrongFlash();
           toast.error("Tests failed. Check your output!");
         }
       } else {
+        triggerWrongFlash();
         toast.error(result.error || "Code execution failed!");
       }
     } catch (err) {
       console.error(err);
+      triggerWrongFlash();
       toast.error("Something went wrong running your code.");
     } finally {
       setIsRunning(false);
@@ -85,10 +88,10 @@ function ProblemPage() {
     <div className="h-screen bg-base-100 flex flex-col">
       <Navbar />
 
-      <div className="flex-1">
-        <Group direction="horizontal">
+      <div className="flex-1 min-h-0">
+        <Group orientation="horizontal" className="h-full">
           {/* left panel- problem desc */}
-          <Panel defaultSize={40} minSize={30}>
+          <Panel defaultSize="40%" minSize="30%">
             <ProblemDescription
               problem={currentProblem}
               currentProblemId={currentProblemId}
@@ -100,10 +103,10 @@ function ProblemPage() {
           <Separator className="w-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-col-resize" />
 
           {/* right panel- code editor & output */}
-          <Panel defaultSize={60} minSize={30}>
-            <Group direction="vertical">
+          <Panel defaultSize="60%" minSize="30%">
+            <Group orientation="vertical">
               {/* Top panel - Code editor */}
-              <Panel defaultSize={70} minSize={30}>
+              <Panel defaultSize="70%" minSize="30%">
                 <CodeEditorPanel
                   selectedLanguage={selectedLanguage}
                   code={code}
@@ -117,7 +120,7 @@ function ProblemPage() {
               <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
               {/* Bottom panel - Output Panel*/}
-              <Panel defaultSize={30} minSize={30}>
+              <Panel defaultSize="30%" minSize="30%">
                 <OutputPanel output={output} />
               </Panel>
             </Group>

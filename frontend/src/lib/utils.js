@@ -45,3 +45,12 @@ export const triggerConfetti = () => {
     })
   );
 };
+
+// red screen flash shown when the user's code is wrong
+export const triggerWrongFlash = () => {
+  const flash = document.createElement("div");
+  flash.className =
+    "wrong-flash pointer-events-none fixed inset-0 z-[9999] bg-red-600/40 shadow-[inset_0_0_150px_rgba(220,38,38,0.9)]";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
+};

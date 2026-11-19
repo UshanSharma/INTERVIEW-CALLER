@@ -4,9 +4,14 @@ import { useNavigate, useParams } from "react-router";
 import { useEndSession, useJoinSession, useSessionById } from "../hooks/useSessions";
 import { PROBLEMS } from "../data/problems";
 import { executeCode } from "../lib/codeRunner";
-import Navbar from "../components/navbar";
+import Navbar from "../components/Navbar";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { getDifficultyBadgeClass, checkIfTestsPassed, triggerConfetti } from "../lib/utils";
+import {
+  getDifficultyBadgeClass,
+  checkIfTestsPassed,
+  triggerConfetti,
+  triggerWrongFlash,
+} from "../lib/utils";
 import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import OutputPanel from "../components/OutputPanel";
@@ -109,14 +114,17 @@ function SessionPage() {
             triggerConfetti();
             toast.success("All tests passed! Great job!");
           } else {
+            triggerWrongFlash();
             toast.error("Tests failed. Check your output!");
           }
         }
       } else {
+        triggerWrongFlash();
         toast.error(result.error || "Code execution failed!");
       }
     } catch (err) {
       console.error(err);
+      triggerWrongFlash();
       toast.error("Something went wrong running your code.");
     } finally {
       setIsRunning(false);
@@ -223,7 +231,7 @@ function SessionPage() {
                                   <span>{example.input}</span>
                                 </div>
                                 <div className="flex gap-2">
-                                  <span className="text-secondary font-bold min-w-[70px]">
+                                  <span className="text-orange-500 font-bold min-w-[70px]">
                                     Output:
                                   </span>
                                   <span>{example.output}</span>
@@ -261,7 +269,7 @@ function SessionPage() {
                 </div>
               </Panel>
 
-              <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+              <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
               <Panel defaultSize="50%" minSize="20%">
                 <Group orientation="vertical">
@@ -276,7 +284,7 @@ function SessionPage() {
                     />
                   </Panel>
 
-                  <Separator className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
+                  <Separator className="h-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-row-resize" />
 
                   <Panel defaultSize="30%" minSize="15%">
                     <OutputPanel output={output} />
@@ -286,7 +294,7 @@ function SessionPage() {
             </Group>
           </Panel>
 
-          <Separator className="w-2 bg-base-300 hover:bg-primary transition-colors cursor-col-resize" />
+          <Separator className="w-2 bg-base-300 hover:bg-orange-500 transition-colors cursor-col-resize" />
 
           {/* RIGHT PANEL - VIDEO CALLS & CHAT */}
           <Panel defaultSize="50%" minSize="30%">
@@ -294,7 +302,7 @@ function SessionPage() {
               {isInitializingCall ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
-                    <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-primary mb-4" />
+                    <Loader2Icon className="w-12 h-12 mx-auto animate-spin text-orange-500 mb-4" />
                     <p className="text-lg">Connecting to video call...</p>
                   </div>
                 </div>

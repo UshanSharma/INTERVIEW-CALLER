@@ -35,3 +35,20 @@
 .str-video__menu-container * {
   color: #fff !important;
 }
+
+/* Red flash shown when the user's code is wrong */
+@keyframes wrong-flash {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.wrong-flash {
+  animation: wrong-flash 0.7s ease-out forwards;
+}
