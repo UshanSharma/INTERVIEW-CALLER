@@ -6,12 +6,7 @@ import { PROBLEMS } from "../data/problems";
 import { executeCode } from "../lib/codeRunner";
 import Navbar from "../components/navbar";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import {
-  getDifficultyBadgeClass,
-  checkIfTestsPassed,
-  triggerConfetti,
-  triggerWrongFlash,
-} from "../lib/utils";
+import { checkIfTestsPassed, triggerConfetti, triggerWrongFlash } from "../lib/utils";
 import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import OutputPanel from "../components/OutputPanel";
@@ -21,9 +16,12 @@ import useStreamClient from "../hooks/useStreamClient";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
 import VideoCallUI from "../components/VideoCallUI";
 
-// same box shape as the End Session button (colors are set separately)
-const boxShape =
-  "!inline-flex !items-center !justify-center !h-8 !min-h-0 !rounded-[4px] !px-3 !gap-2 !text-sm !font-semibold !shadow-[0_4px_8px_rgba(0,0,0,0.25)]";
+// full class names written out so Tailwind/daisyUI generate them
+const difficultyBtnClass = {
+  easy: "btn-success",
+  medium: "btn-warning",
+  hard: "btn-error",
+};
 
 function SessionPage() {
   const navigate = useNavigate();
@@ -182,19 +180,19 @@ function SessionPage() {
                       <div className="flex items-center gap-3">
                         {role && (
                           <span
-                            className={`badge ${boxShape} ${
+                            className={`btn btn-sm pointer-events-none ${
                               isHost
-                                ? "!border-0 text-white bg-gradient-to-r from-red-600 to-orange-500"
-                                : "badge-outline border-orange-500 text-orange-500"
+                                ? "border-0 text-white bg-gradient-to-r from-red-600 to-orange-500"
+                                : "btn-outline border-orange-500 text-orange-500"
                             }`}
                           >
                             You: {role}
                           </span>
                         )}
                         <span
-                          className={`badge ${boxShape} ${getDifficultyBadgeClass(
-                            session?.difficulty
-                          )}`}
+                          className={`btn btn-sm pointer-events-none ${
+                            difficultyBtnClass[session?.difficulty?.toLowerCase()] || "btn-ghost"
+                          }`}
                         >
                           {difficultyLabel}
                         </span>
